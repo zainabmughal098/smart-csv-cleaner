@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test'
 import { Buffer } from 'node:buffer'
 import AxeBuilder from '@axe-core/playwright'
 import { parseCsv, buildProposal, DEFAULT_OPTIONS, toCsv } from '../../src/lib/csv.js'
+import { CSV_LIMITS } from '../../src/lib/limits.js'
 
 const sample = ' Full Name ,City,Notes,Code\r\n" Alice ","Karachi, PK","line one\nline two",001\r\nBob,,"He said ""hello""",002\r\nBob,,"He said ""hello""",002\r\n'
 const options = { ...DEFAULT_OPTIONS, trim: true, standardize: true, deduplicate: true }
@@ -118,10 +119,10 @@ test('replacement confirms, invalid files keep working data, and all import limi
     ['bad.csv', 'a,b\n1', /record 2 has 1 fields/],
     ['empty.csv', '', /empty/],
     ['invalid.csv', Buffer.from([0xc3, 0x28]), /UTF-8/],
-    ['large.csv', Buffer.alloc(5 * 1024 * 1024 + 1, 120), /5 MB.*smaller sample/],
-    ['rows.csv', 'a\n' + 'x\n'.repeat(25001), /limit/],
+    ['large.csv', Buffer.alloc(CSV_LIMITS.bytes + 1, 120), /25 MB.*smaller sample/],
+    ['rows.csv', 'a\n' + 'x\n'.repeat(CSV_LIMITS.rows + 1), /limit/],
     ['columns.csv', Array.from({ length: 201 }, (_, index) => `c${index}`).join(','), /limit/],
-    ['cells.csv', Array.from({ length: 200 }, (_, index) => `c${index}`).join(',') + '\n' + (','.repeat(199) + '\n').repeat(1251), /limit/],
+    ['cells.csv', Array.from({ length: 200 }, (_, index) => `c${index}`).join(',') + '\n' + (','.repeat(199) + '\n').repeat(CSV_LIMITS.cells / 200 + 1), /limit/],
     ['wrong.xlsx', 'a\nb', /\.csv/],
   ]
   for (const [name, content, message] of errors) {

@@ -73,7 +73,7 @@ export default function CleaningPanel({ options, onChange, disabled, proposal, o
             : 'Selections only update the proposed preview. Current data changes after you review and confirm.'}
         </p>
       </div>
-      <button className="primary-button mt-4 w-full justify-center" disabled={disabled || invalidFill || !proposal?.changes.length} onClick={onApply}>
+      <button className="primary-button mt-4 w-full justify-center" disabled={disabled || invalidFill || !proposal?.changeCount} onClick={onApply}>
         <Sparkles size={15} />Review & apply changes
       </button>
     </section>

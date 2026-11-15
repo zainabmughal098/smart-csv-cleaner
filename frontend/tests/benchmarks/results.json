@@ -1,0 +1,607 @@
+{
+  "environment": {
+    "date": "2026-11-14",
+    "platform": "win32",
+    "cpu": "Intel(R) Core(TM) i5-6200U CPU @ 2.30GHz",
+    "logicalCpus": 4,
+    "ramGiB": 7.883396148681641,
+    "node": "v24.21.0",
+    "browser": "157.0.4341.46",
+    "baseline": "06ebe60",
+    "source": "Vite-transformed local modules; synthetic file generation and post-run verification excluded from timing"
+  },
+  "cases": [
+    {
+      "mib": 5,
+      "rows": 10000,
+      "columns": 10,
+      "bytes": 5242880,
+      "pipeline": "baseline",
+      "repetition": 1,
+      "importMs": 469.69999980926514,
+      "cleanMs": 85.60000014305115,
+      "csvMs": 114.39999985694885,
+      "logMs": 109.5,
+      "metrics": {
+        "rows": 10000,
+        "columns": 10,
+        "missing": 1000,
+        "duplicates": 100
+      },
+      "changes": 11010,
+      "csvBytes": 5362431,
+      "logBytes": 945421,
+      "ticks": 6,
+      "maxGapMs": 784.5,
+      "pagePeakMiB": 60.1378288269043,
+      "workerPeakMiB": 0.5128402709960938,
+      "memorySamples": 3,
+      "verified": {
+        "comparisonOnly": true
+      }
+    },
+    {
+      "mib": 5,
+      "rows": 10000,
+      "columns": 10,
+      "bytes": 5242880,
+      "pipeline": "baseline",
+      "repetition": 2,
+      "importMs": 455.10000014305115,
+      "cleanMs": 97.20000004768372,
+      "csvMs": 85,
+      "logMs": 65,
+      "metrics": {
+        "rows": 10000,
+        "columns": 10,
+        "missing": 1000,
+        "duplicates": 100
+      },
+      "changes": 11010,
+      "csvBytes": 5362431,
+      "logBytes": 945421,
+      "ticks": 3,
+      "maxGapMs": 705.5,
+      "pagePeakMiB": 65.45676040649414,
+      "workerPeakMiB": 0.5128402709960938,
+      "memorySamples": 3,
+      "verified": {
+        "comparisonOnly": true
+      }
+    },
+    {
+      "mib": 5,
+      "rows": 10000,
+      "columns": 10,
+      "bytes": 5242880,
+      "pipeline": "worker",
+      "repetition": 1,
+      "importMs": 346.7000000476837,
+      "cleanMs": 263.2000000476837,
+      "csvMs": 211.29999995231628,
+      "logMs": 25.5,
+      "metrics": {
+        "rows": 10000,
+        "columns": 10,
+        "missing": 1000,
+        "duplicates": 100
+      },
+      "changes": 11010,
+      "csvBytes": 5362431,
+      "logBytes": 946619,
+      "ticks": 86,
+      "maxGapMs": 17.200000047683716,
+      "pagePeakMiB": 1.6496467590332031,
+      "workerPeakMiB": 43.964622497558594,
+      "memorySamples": 26,
+      "verified": {
+        "csvRoundtrip": true,
+        "completeLog": true
+      }
+    },
+    {
+      "mib": 5,
+      "rows": 10000,
+      "columns": 10,
+      "bytes": 5242880,
+      "pipeline": "worker",
+      "repetition": 2,
+      "importMs": 1160.0999999046326,
+      "cleanMs": 516.7000000476837,
+      "csvMs": 146.79999995231628,
+      "logMs": 31.5,
+      "metrics": {
+        "rows": 10000,
+        "columns": 10,
+        "missing": 1000,
+        "duplicates": 100
+      },
+      "changes": 11010,
+      "csvBytes": 5362431,
+      "logBytes": 946619,
+      "ticks": 188,
+      "maxGapMs": 17.40000009536743,
+      "pagePeakMiB": 1.6596794128417969,
+      "workerPeakMiB": 42.56732177734375,
+      "memorySamples": 46,
+      "verified": {
+        "csvRoundtrip": true,
+        "completeLog": true
+      }
+    },
+    {
+      "mib": 10,
+      "rows": 10000,
+      "columns": 10,
+      "bytes": 10485760,
+      "pipeline": "baseline",
+      "repetition": 1,
+      "importMs": 976,
+      "cleanMs": 142.79999995231628,
+      "csvMs": 132.90000009536743,
+      "logMs": 73.89999985694885,
+      "metrics": {
+        "rows": 10000,
+        "columns": 10,
+        "missing": 1000,
+        "duplicates": 100
+      },
+      "changes": 11010,
+      "csvBytes": 10552882,
+      "logBytes": 997850,
+      "ticks": 3,
+      "maxGapMs": 1329.7000000476837,
+      "pagePeakMiB": 97.7917251586914,
+      "workerPeakMiB": 0.5128402709960938,
+      "memorySamples": 3,
+      "verified": {
+        "comparisonOnly": true
+      }
+    },
+    {
+      "mib": 10,
+      "rows": 10000,
+      "columns": 10,
+      "bytes": 10485760,
+      "pipeline": "baseline",
+      "repetition": 2,
+      "importMs": 980.6000001430511,
+      "cleanMs": 134.69999980926514,
+      "csvMs": 123.60000014305115,
+      "logMs": 85.29999995231628,
+      "metrics": {
+        "rows": 10000,
+        "columns": 10,
+        "missing": 1000,
+        "duplicates": 100
+      },
+      "changes": 11010,
+      "csvBytes": 10552882,
+      "logBytes": 997850,
+      "ticks": 4,
+      "maxGapMs": 1328.5999999046326,
+      "pagePeakMiB": 98.40275955200195,
+      "workerPeakMiB": 0.5128402709960938,
+      "memorySamples": 3,
+      "verified": {
+        "comparisonOnly": true
+      }
+    },
+    {
+      "mib": 10,
+      "rows": 10000,
+      "columns": 10,
+      "bytes": 10485760,
+      "pipeline": "worker",
+      "repetition": 1,
+      "importMs": 786.8000001907349,
+      "cleanMs": 417.89999985694885,
+      "csvMs": 313.7000000476837,
+      "logMs": 38.40000009536743,
+      "metrics": {
+        "rows": 10000,
+        "columns": 10,
+        "missing": 1000,
+        "duplicates": 100
+      },
+      "changes": 11010,
+      "csvBytes": 10552882,
+      "logBytes": 999049,
+      "ticks": 155,
+      "maxGapMs": 18.800000190734863,
+      "pagePeakMiB": 1.6621932983398438,
+      "workerPeakMiB": 63.396907806396484,
+      "memorySamples": 47,
+      "verified": {
+        "csvRoundtrip": true,
+        "completeLog": true
+      }
+    },
+    {
+      "mib": 10,
+      "rows": 10000,
+      "columns": 10,
+      "bytes": 10485760,
+      "pipeline": "worker",
+      "repetition": 2,
+      "importMs": 1026.0999999046326,
+      "cleanMs": 532.2000000476837,
+      "csvMs": 386.09999990463257,
+      "logMs": 51.10000014305115,
+      "metrics": {
+        "rows": 10000,
+        "columns": 10,
+        "missing": 1000,
+        "duplicates": 100
+      },
+      "changes": 11010,
+      "csvBytes": 10552882,
+      "logBytes": 999049,
+      "ticks": 197,
+      "maxGapMs": 30.299999952316284,
+      "pagePeakMiB": 1.6650466918945312,
+      "workerPeakMiB": 63.36488723754883,
+      "memorySamples": 53,
+      "verified": {
+        "csvRoundtrip": true,
+        "completeLog": true
+      }
+    },
+    {
+      "mib": 25,
+      "rows": 10000,
+      "columns": 10,
+      "bytes": 26214400,
+      "pipeline": "baseline",
+      "repetition": 1,
+      "importMs": 2311,
+      "cleanMs": 224.20000004768372,
+      "csvMs": 267.2000000476837,
+      "logMs": 154.29999995231628,
+      "metrics": {
+        "rows": 10000,
+        "columns": 10,
+        "missing": 1000,
+        "duplicates": 100
+      },
+      "changes": 11010,
+      "csvBytes": 26124236,
+      "logBytes": 1155136,
+      "ticks": 4,
+      "maxGapMs": 2960.5,
+      "pagePeakMiB": 141.16273880004883,
+      "workerPeakMiB": 0.5128517150878906,
+      "memorySamples": 4,
+      "verified": {
+        "comparisonOnly": true
+      }
+    },
+    {
+      "mib": 25,
+      "rows": 10000,
+      "columns": 10,
+      "bytes": 26214400,
+      "pipeline": "baseline",
+      "repetition": 2,
+      "importMs": 1788.6999998092651,
+      "cleanMs": 244.20000004768372,
+      "csvMs": 337,
+      "logMs": 193.29999995231628,
+      "metrics": {
+        "rows": 10000,
+        "columns": 10,
+        "missing": 1000,
+        "duplicates": 100
+      },
+      "changes": 11010,
+      "csvBytes": 26124236,
+      "logBytes": 1155136,
+      "ticks": 5,
+      "maxGapMs": 2533,
+      "pagePeakMiB": 141.36185455322266,
+      "workerPeakMiB": 0.5128517150878906,
+      "memorySamples": 3,
+      "verified": {
+        "comparisonOnly": true
+      }
+    },
+    {
+      "mib": 25,
+      "rows": 10000,
+      "columns": 10,
+      "bytes": 26214400,
+      "pipeline": "worker",
+      "repetition": 1,
+      "importMs": 2013.2999999523163,
+      "cleanMs": 724.5,
+      "csvMs": 652.0999999046326,
+      "logMs": 34.799999952316284,
+      "metrics": {
+        "rows": 10000,
+        "columns": 10,
+        "missing": 1000,
+        "duplicates": 100
+      },
+      "changes": 11010,
+      "csvBytes": 26124236,
+      "logBytes": 1156335,
+      "ticks": 339,
+      "maxGapMs": 21.600000143051147,
+      "pagePeakMiB": 1.7003707885742188,
+      "workerPeakMiB": 127.75101470947266,
+      "memorySamples": 95,
+      "verified": {
+        "csvRoundtrip": true,
+        "completeLog": true
+      }
+    },
+    {
+      "mib": 25,
+      "rows": 10000,
+      "columns": 10,
+      "bytes": 26214400,
+      "pipeline": "worker",
+      "repetition": 2,
+      "importMs": 1797.5,
+      "cleanMs": 858.7000000476837,
+      "csvMs": 613.3999998569489,
+      "logMs": 27.700000047683716,
+      "metrics": {
+        "rows": 10000,
+        "columns": 10,
+        "missing": 1000,
+        "duplicates": 100
+      },
+      "changes": 11010,
+      "csvBytes": 26124236,
+      "logBytes": 1156335,
+      "ticks": 325,
+      "maxGapMs": 22.700000047683716,
+      "pagePeakMiB": 1.6996574401855469,
+      "workerPeakMiB": 125.2867431640625,
+      "memorySamples": 94,
+      "verified": {
+        "csvRoundtrip": true,
+        "completeLog": true
+      }
+    },
+    {
+      "mib": 50,
+      "rows": 10000,
+      "columns": 10,
+      "bytes": 52428800,
+      "pipeline": "baseline",
+      "repetition": 1,
+      "importMs": 2979.9000000953674,
+      "cleanMs": 379.59999990463257,
+      "csvMs": 528.1000001430511,
+      "logMs": 255,
+      "metrics": {
+        "rows": 10000,
+        "columns": 10,
+        "missing": 1000,
+        "duplicates": 100
+      },
+      "changes": 11010,
+      "csvBytes": 52076492,
+      "logBytes": 1417280,
+      "ticks": 4,
+      "maxGapMs": 4146.200000047684,
+      "pagePeakMiB": 244.63035202026367,
+      "workerPeakMiB": 0.5128402709960938,
+      "memorySamples": 4,
+      "verified": {
+        "comparisonOnly": true
+      }
+    },
+    {
+      "mib": 50,
+      "rows": 10000,
+      "columns": 10,
+      "bytes": 52428800,
+      "pipeline": "baseline",
+      "repetition": 2,
+      "importMs": 2853.4000000953674,
+      "cleanMs": 428,
+      "csvMs": 632.5999999046326,
+      "logMs": 457.90000009536743,
+      "metrics": {
+        "rows": 10000,
+        "columns": 10,
+        "missing": 1000,
+        "duplicates": 100
+      },
+      "changes": 11010,
+      "csvBytes": 52076492,
+      "logBytes": 1417280,
+      "ticks": 7,
+      "maxGapMs": 4355.299999952316,
+      "pagePeakMiB": 244.7108268737793,
+      "workerPeakMiB": 0.5128402709960938,
+      "memorySamples": 4,
+      "verified": {
+        "comparisonOnly": true
+      }
+    },
+    {
+      "mib": 50,
+      "rows": 10000,
+      "columns": 10,
+      "bytes": 52428800,
+      "pipeline": "worker",
+      "repetition": 1,
+      "importMs": 3368.699999809265,
+      "cleanMs": 1572,
+      "csvMs": 1392.3000001907349,
+      "logMs": 34.5,
+      "metrics": {
+        "rows": 10000,
+        "columns": 10,
+        "missing": 1000,
+        "duplicates": 100
+      },
+      "changes": 11010,
+      "csvBytes": 52076492,
+      "logBytes": 1418479,
+      "ticks": 622,
+      "maxGapMs": 25.199999809265137,
+      "pagePeakMiB": 1.7563896179199219,
+      "workerPeakMiB": 229.33657455444336,
+      "memorySamples": 177,
+      "verified": {
+        "csvRoundtrip": true,
+        "completeLog": true
+      }
+    },
+    {
+      "mib": 50,
+      "rows": 10000,
+      "columns": 10,
+      "bytes": 52428800,
+      "pipeline": "worker",
+      "repetition": 2,
+      "importMs": 3471,
+      "cleanMs": 1605.2999999523163,
+      "csvMs": 1224.0999999046326,
+      "logMs": 26.700000047683716,
+      "metrics": {
+        "rows": 10000,
+        "columns": 10,
+        "missing": 1000,
+        "duplicates": 100
+      },
+      "changes": 11010,
+      "csvBytes": 52076492,
+      "logBytes": 1418479,
+      "ticks": 610,
+      "maxGapMs": 22,
+      "pagePeakMiB": 1.7591934204101562,
+      "workerPeakMiB": 231.77960968017578,
+      "memorySamples": 171,
+      "verified": {
+        "csvRoundtrip": true,
+        "completeLog": true
+      }
+    },
+    {
+      "mib": 10,
+      "rows": 100000,
+      "columns": 10,
+      "bytes": 10485760,
+      "pipeline": "worker",
+      "repetition": 1,
+      "importMs": 1380.7999999523163,
+      "cleanMs": 2302.4000000953674,
+      "csvMs": 1057.0999999046326,
+      "logMs": 293.90000009536743,
+      "metrics": {
+        "rows": 100000,
+        "columns": 10,
+        "missing": 10000,
+        "duplicates": 1000
+      },
+      "changes": 110010,
+      "csvBytes": 12100702,
+      "logBytes": 9332940,
+      "ticks": 493,
+      "maxGapMs": 20.40000009536743,
+      "pagePeakMiB": 1.8122482299804688,
+      "workerPeakMiB": 111.52096939086914,
+      "memorySamples": 142,
+      "verified": {
+        "csvRoundtrip": true,
+        "completeLog": true
+      }
+    },
+    {
+      "mib": 10,
+      "rows": 100000,
+      "columns": 10,
+      "bytes": 10485760,
+      "pipeline": "worker",
+      "repetition": 2,
+      "importMs": 1374.4000000953674,
+      "cleanMs": 3550.5,
+      "csvMs": 1283.5999999046326,
+      "logMs": 369.2999999523163,
+      "metrics": {
+        "rows": 100000,
+        "columns": 10,
+        "missing": 10000,
+        "duplicates": 1000
+      },
+      "changes": 110010,
+      "csvBytes": 12100702,
+      "logBytes": 9332940,
+      "ticks": 639,
+      "maxGapMs": 21.699999809265137,
+      "pagePeakMiB": 1.8390579223632812,
+      "workerPeakMiB": 109.11430358886719,
+      "memorySamples": 181,
+      "verified": {
+        "csvRoundtrip": true,
+        "completeLog": true
+      }
+    },
+    {
+      "mib": 25,
+      "rows": 5000,
+      "columns": 200,
+      "bytes": 26214400,
+      "pipeline": "worker",
+      "repetition": 1,
+      "importMs": 1972.7999999523163,
+      "cleanMs": 1099.3000001907349,
+      "csvMs": 1356.3999998569489,
+      "logMs": 32.90000009536743,
+      "metrics": {
+        "rows": 5000,
+        "columns": 200,
+        "missing": 500,
+        "duplicates": 50
+      },
+      "changes": 5700,
+      "csvBytes": 27919269,
+      "logBytes": 743216,
+      "ticks": 433,
+      "maxGapMs": 44.40000009536743,
+      "pagePeakMiB": 1.7328681945800781,
+      "workerPeakMiB": 146.5888442993164,
+      "memorySamples": 108,
+      "verified": {
+        "csvRoundtrip": true,
+        "completeLog": true
+      }
+    },
+    {
+      "mib": 25,
+      "rows": 5000,
+      "columns": 200,
+      "bytes": 26214400,
+      "pipeline": "worker",
+      "repetition": 2,
+      "importMs": 1913,
+      "cleanMs": 931.7000000476837,
+      "csvMs": 1052.7999999523163,
+      "logMs": 21.100000143051147,
+      "metrics": {
+        "rows": 5000,
+        "columns": 200,
+        "missing": 500,
+        "duplicates": 50
+      },
+      "changes": 5700,
+      "csvBytes": 27919269,
+      "logBytes": 743216,
+      "ticks": 389,
+      "maxGapMs": 21.700000047683716,
+      "pagePeakMiB": 1.7404289245605469,
+      "workerPeakMiB": 149.46013259887695,
+      "memorySamples": 105,
+      "verified": {
+        "csvRoundtrip": true,
+        "completeLog": true
+      }
+    }
+  ]
+}

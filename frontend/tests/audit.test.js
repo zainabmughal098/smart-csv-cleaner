@@ -78,13 +78,14 @@ test('CSV delimiter and quote injection cannot create extra exported cells', () 
   assert.equal(getFormulaRiskCount(dataset), 0)
 })
 
-test('5 MB is an inclusive byte boundary and oversized files are rejected before reading', async () => {
-  assert.equal(MAX_FILE_SIZE, 5 * 1024 * 1024)
+test('configured byte boundary is inclusive; legacy 5 MB inputs work; oversize rejects before reading', async () => {
+  assert.equal(MAX_FILE_SIZE, 25 * 1024 * 1024)
+  assert.equal((await readCsvFile(new File(['a\n', 'x'.repeat(5 * 1024 * 1024 - 2)], 'legacy.csv'))).rows.length, 1)
   const exact = new File(['a\n', 'x'.repeat(MAX_FILE_SIZE - 2)], 'boundary.csv')
   assert.equal(exact.size, MAX_FILE_SIZE)
   assert.equal((await readCsvFile(exact)).rows.length, 1)
   let read = false
-  await assert.rejects(readCsvFile({ name: 'large.csv', size: MAX_FILE_SIZE + 1, arrayBuffer() { read = true } }), /5 MB.*smaller sample.*25,000 rows.*200 columns.*250,000 cells/)
+  await assert.rejects(readCsvFile({ name: 'large.csv', size: MAX_FILE_SIZE + 1, arrayBuffer() { read = true } }), /25 MB.*smaller sample.*100,000 rows.*200 columns.*1,000,000 cells/)
   assert.equal(read, false)
 })
 
@@ -97,7 +98,8 @@ test('file validation rejects bad extensions, no file, empty content and invalid
   assert.equal(valid.rows[0].values[0], '\u0646\u0627\u0645')
 })
 
-test('25,000-row boundary is inclusive and excludes header and final terminator', () => {
+test('legacy 25,000 rows and the configured inclusive row boundary exclude header/final terminator', () => {
+  assert.equal(parseCsv('a\n' + 'x\n'.repeat(25000)).rows.length, 25000)
   const text = 'a\r\n' + 'x\r\n'.repeat(LIMITS.rows)
   assert.equal(parseCsv(text).rows.length, LIMITS.rows)
   assert.throws(() => parseCsv(text + 'x'), /limit/)
@@ -110,10 +112,11 @@ test('200-column boundary is inclusive even for header-only datasets', () => {
   assert.throws(() => parseCsv(header + ',extra'), /limit/)
 })
 
-test('250,000-cell boundary is inclusive, including empty cells', () => {
+test('legacy 250,000 cells and the configured cell boundary work, including empty cells', () => {
   const header = Array.from({ length: 200 }, (_, index) => `c${index}`).join(',')
   const row = ','.repeat(199)
-  const text = `${header}\n${(row + '\n').repeat(1250)}`
+  assert.equal(parseCsv(`${header}\n${(row + '\n').repeat(1250)}`).rows.length * 200, 250000)
+  const text = `${header}\n${(row + '\n').repeat(LIMITS.cells / 200)}`
   const data = parseCsv(text)
   assert.equal(data.rows.length * data.columns.length, LIMITS.cells)
   assert.equal(getMetrics(data).missing, LIMITS.cells)

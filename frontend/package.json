@@ -10,8 +10,9 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "test": "node --test src/lib/csv.test.js tests/audit.test.js",
+    "test": "node --test src/lib/csv.test.js tests/audit.test.js tests/worker.test.js",
     "test:e2e": "playwright test",
+    "benchmark": "node scripts/benchmark.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

@@ -1,4 +1,4 @@
-﻿import { useMemo, useRef, useState } from 'react'
+﻿import { useState } from 'react'
 import { AlertCircle, CheckCircle2, ChevronRight, Download, Info, ShieldCheck, X } from 'lucide-react'
 import Sidebar from './components/Sidebar'
 import UploadPanel from './components/UploadPanel'
@@ -10,7 +10,7 @@ import ActivityLog from './components/ActivityLog'
 import ExportPanel from './components/ExportPanel'
 import SettingsPanel from './components/SettingsPanel'
 import WorkflowSteps from './components/WorkflowSteps'
-import { buildProposal, createChangeLog, DEFAULT_OPTIONS, downloadFile, getFormulaRiskCount, getMetrics, readCsvFile, toCsv } from './lib/csv'
+import useCsvWorkspace from './hooks/useCsvWorkspace'
 
 const pages = {
   dashboard: { title: 'Workspace overview', description: 'Good data starts with a clean slate. Let’s get yours ready.' },
@@ -19,114 +19,13 @@ const pages = {
   settings: { title: 'Workspace settings', description: 'A small workspace. A few useful preferences.' },
 }
 
-function createEntry(type, message, details, extra = {}) {
-  return { id: crypto.randomUUID(), time: new Date().toISOString(), type, message, details, ...extra }
-}
-
 export default function App() {
   const [active, setActive] = useState('dashboard')
-  const [file, setFile] = useState(null)
-  const [original, setOriginal] = useState(null)
-  const [dataset, setDataset] = useState(null)
-  const [options, setOptions] = useState({ ...DEFAULT_OPTIONS })
-  const [entries, setEntries] = useState([])
-  const [version, setVersion] = useState(0)
-  const [error, setError] = useState('')
-  const [notice, setNotice] = useState('')
-  const [loading, setLoading] = useState(false)
   const [pageSize, setPageSize] = useState(10)
-  const [protectFormulas, setProtectFormulas] = useState(true)
-  const loadingRef = useRef(false)
-  const metrics = useMemo(() => getMetrics(dataset), [dataset])
-  const proposal = useMemo(() => buildProposal(dataset, options), [dataset, options])
-  const formulaRisks = useMemo(() => getFormulaRiskCount(dataset), [dataset])
-  const busy = loading || !dataset
+  const { dataset, original, file, sessionId, hasApplied, hasExported, version, metrics, entries, eventCount, proposal, options, setOptions,
+    error, setError, notice, setNotice, operation, importFile, applyChanges, loadPage,
+    busy, loading, recalculate, cancel, exportProps, exportCsv } = useCsvWorkspace()
   const page = pages[active]
-  const basename = file?.name.replace(/\.csv$/i, '') || 'dataset'
-
-  async function importFile(selected) {
-    if (loadingRef.current) return
-    setError('')
-    setNotice('')
-    loadingRef.current = true
-    setLoading(true)
-    try {
-      const parsed = await readCsvFile(selected)
-      if (dataset && !window.confirm('Replace the current workspace with this file? Current applied changes, pending selections, and session history will be cleared. Your original files will stay untouched. Export anything you want to keep first.')) return
-      setOriginal(parsed)
-      setDataset(parsed)
-      setFile({ name: selected.name, size: selected.size, lastModified: selected.lastModified })
-      setOptions({ ...DEFAULT_OPTIONS })
-      setVersion(1)
-      setEntries([createEntry('import', `Imported ${selected.name}`, `${parsed.rows.length.toLocaleString()} rows · ${parsed.columns.length} columns · Read locally; original file unchanged.`)])
-      setNotice('CSV imported locally. No cleaning operations have been applied.')
-    } catch (cause) {
-      setError(cause.message || 'The file could not be read. Please choose it again.')
-    } finally {
-      loadingRef.current = false
-      setLoading(false)
-    }
-  }
-
-  function applyChanges() {
-    if (busy || !proposal?.changes.length || (options.missing === 'fill' && !options.fillValue.trim())) return
-    const { summary, changes } = proposal
-    const removed = summary.missingRows + summary.duplicates
-    const description = `${summary.trimmed} cells trimmed; ${summary.renamed} columns renamed; ${summary.filled} missing cells filled; ${removed} rows removed (${summary.missingRows} with missing values, ${summary.duplicates} duplicates).`
-    if (!window.confirm(`Apply these proposed changes to your working copy?\n\n${description}\n\nThis replaces the current working version. The original upload stays available and unchanged.`)) return
-    setDataset(proposal.dataset)
-    setVersion((value) => value + 1)
-    setEntries((current) => [...current, createEntry('apply', `Applied cleaning · version ${version + 1}`, description, { fromVersion: version, toVersion: version + 1, options: { ...options }, summary, changes })])
-    setOptions({ ...DEFAULT_OPTIONS })
-    setNotice(`Changes applied to version ${version + 1}. Your original upload is preserved.`)
-  }
-
-  function resetData() {
-    if (busy || version === 1) return
-    if (!window.confirm('Restore the original uploaded data? This replaces your current working copy and clears pending selections. Applied changes remain recorded in the session log.')) return
-    setDataset(original)
-    setOptions({ ...DEFAULT_OPTIONS })
-    setVersion((value) => value + 1)
-    setEntries((current) => [...current, createEntry('reset', `Restored original upload · version ${version + 1}`, 'Working data restored. Previous applied changes remain in this log.', { fromVersion: version, toVersion: version + 1 })])
-    setNotice('Original data restored in the working copy.')
-  }
-
-  function exportCsv() {
-    if (busy) return
-    if (formulaRisks && !window.confirm(protectFormulas
-      ? `Formula protection will prefix ${formulaRisks} potentially risky headers or cells with an apostrophe in the download. This changes exported text, including negative numeric strings, but does not change your working data or original file. No CSV protection works in every spreadsheet. Continue?`
-      : `Export without formula protection? ${formulaRisks} headers or cells may be interpreted as spreadsheet formulas. Do not open an untrusted raw export in a spreadsheet. Your working data and original file remain unchanged. Continue?`)) return
-    try {
-      downloadFile(toCsv(dataset, { protectFormulas }), `${basename}_v${version}${protectFormulas && formulaRisks ? '_protected' : ''}.csv`, 'text/csv;charset=utf-8')
-      setEntries((current) => [...current, createEntry('export', `CSV download requested · version ${version}`, `${dataset.rows.length.toLocaleString()} rows. Pending proposals excluded. ${protectFormulas ? `${formulaRisks} formula-risk values prefixed for export.` : 'Raw values exported without formula protection.'}`, { version, format: 'csv', protectFormulas, formulaRiskCells: formulaRisks, escapedCells: protectFormulas ? formulaRisks : 0 })])
-      setNotice(`CSV download requested for applied version ${version}. Pending changes are excluded.`)
-    } catch { setError('The CSV download could not be started. Please try again.') }
-  }
-
-  function exportLog() {
-    if (busy) return
-    try {
-      const entry = createEntry('export', 'Change log download requested', 'Includes session events and full applied cell and row changes; excludes pending proposals.')
-      const logEntries = [...entries, entry]
-      const log = createChangeLog({ file, version, dataset, entries: logEntries, exportedAt: entry.time })
-      downloadFile(JSON.stringify(log, null, 2), `${basename}_change-log.json`, 'application/json;charset=utf-8')
-      setEntries(logEntries)
-      setNotice('Change log download requested. It contains applied changes and session events.')
-    } catch { setError('The change log download could not be started. Please try again.') }
-  }
-
-  const exportProps = {
-    disabled: busy,
-    version,
-    hasProposals: !!proposal?.changes.length,
-    onCsv: exportCsv,
-    onLog: exportLog,
-    onReset: resetData,
-    protectFormulas,
-    onProtectFormulasChange: setProtectFormulas,
-    formulaRisks,
-  }
-
   function navigate(nextPage) {
     setActive(nextPage)
     requestAnimationFrame(() => document.getElementById('main-content')?.focus())
@@ -180,12 +79,22 @@ export default function App() {
               <button onClick={() => setNotice('')} aria-label="Dismiss notification"><X size={14} /></button>
             </div>
           )}
+          {operation && (
+            <section className="surface mb-5 flex flex-wrap items-center gap-4 p-4" aria-label="Local CSV processing">
+              <div className="min-w-0 flex-1">
+                <p role="status" className="text-xs font-medium text-slate-700">{operation.phase}</p>
+                <progress aria-label={operation.phase} className="mt-2 h-2 w-full accent-indigo-600" max={Math.max(operation.total ?? 1, 1)} value={operation.completed} />
+                {operation.total !== undefined && <p className="mt-1 text-[11px] text-slate-500">{operation.completed.toLocaleString()} / {operation.total.toLocaleString()} in this phase</p>}
+              </div>
+              <button className="secondary-button" onClick={cancel} disabled={!operation.cancellable}>Cancel operation</button>
+            </section>
+          )}
           {(active === 'dashboard' || active === 'cleaning') && (
             <>
               <WorkflowSteps
                 hasDataset={!!dataset}
-                hasApplied={entries.some((entry) => entry.type === 'apply')}
-                hasExported={entries.some((entry) => entry.type === 'export')}
+                hasApplied={hasApplied}
+                hasExported={hasExported}
               />
               <div className="mb-5 flex items-center justify-between gap-3">
                 <h2 className="text-[13px] font-semibold text-slate-800">Dataset overview</h2>
@@ -196,18 +105,20 @@ export default function App() {
               <Metrics metrics={metrics} />
               <div className="mt-6 grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
                 <div className="min-w-0 space-y-6">
-                  <UploadPanel onFile={importFile} loading={loading} file={file} />
+                  <UploadPanel onFile={importFile} loading={loading} disabled={!!operation} file={file} />
                   <DatasetTable
-                    key={entries.find((entry) => entry.type === 'import')?.id || 'empty'}
+                    key={sessionId || 'empty'}
                     dataset={dataset}
                     original={original}
                     pageSize={pageSize}
                     version={version}
+                    loadPage={loadPage}
                   />
                   <ChangePreview proposal={proposal} metrics={metrics} />
                 </div>
                 <div className="min-w-0 space-y-6">
                   <CleaningPanel options={options} onChange={setOptions} disabled={busy} proposal={proposal} onApply={applyChanges} />
+                  {dataset && !proposal && !operation && <button className="secondary-button w-full justify-center" onClick={recalculate}>Recalculate proposed preview</button>}
                   <ExportPanel {...exportProps} />
                   <div className="flex items-start gap-2 px-1 text-[11px] leading-relaxed text-slate-500">
                     <ShieldCheck size={15} className="mt-0.5 shrink-0" />
@@ -215,14 +126,14 @@ export default function App() {
                   </div>
                 </div>
               </div>
-              <div className="mt-6"><ActivityLog entries={entries} /></div>
+              <div className="mt-6"><ActivityLog entries={entries} eventCount={eventCount} /></div>
             </>
           )}
           {active === 'reports' && (
             <div className="space-y-6">
               <Metrics metrics={metrics} />
               <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
-                <ActivityLog entries={entries} />
+                <ActivityLog entries={entries} eventCount={eventCount} />
                 <ExportPanel {...exportProps} />
               </div>
               <div className="flex gap-2 text-xs text-slate-500">

@@ -2,7 +2,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
-import { buildProposal, DEFAULT_OPTIONS, getMetrics, parseCsv, toCsv } from './csv.js'
+import { buildProposal, DEFAULT_OPTIONS, getMetrics, LIMITS, parseCsv, toCsv } from './csv.js'
 
 const sample = ' Full Name ,City,Notes,Code\r\n" Alice ","Karachi, PK","line one\nline two",001\r\nBob,,"He said ""hello""",002\r\nBob,,"He said ""hello""",002\r\n'
 
@@ -100,7 +100,7 @@ test('rejects empty files, malformed quotes, mismatched records and oversized da
   assert.throws(() => parseCsv('a,b\n"unclosed,b'), /parsed/)
   assert.throws(() => parseCsv('a,b\n1,2,3'), /record 2 has 3 fields/)
   assert.throws(() => parseCsv('a,b\n1'), /record 2 has 1 fields/)
-  assert.throws(() => parseCsv('a\n' + 'x\n'.repeat(25001)), /limit/)
+  assert.throws(() => parseCsv('a\n' + 'x\n'.repeat(LIMITS.rows + 1)), /limit/)
 })
 
 test('supports a header-only dataset and preserves UTF-8 headers', () => {

@@ -1,9 +1,11 @@
 import Papa from 'papaparse'
+import { FORMULA_PREFIX, getMetrics } from './processing.js'
+import { CSV_LIMITS, shapeLimitMessage, validateFile } from './limits.js'
+export { isMissing, getMetrics, getFormulaRiskCount, buildProposal } from './processing.js'
 
-export const MAX_FILE_SIZE = 5 * 1024 * 1024
-export const LIMITS = { rows: 25000, columns: 200, cells: 250000 }
-const DATASET_LIMIT_ERROR = 'This dataset exceeds the browser workspace limit: 25,000 rows, 200 columns, or 250,000 cells. Choose a smaller CSV.'
-const FORMULA_PREFIX = /^(?:[\s\p{Cc}]*[=+\-@\uFF1D\uFF0B\uFF0D\uFF20]|[\t\r\n])/u
+export const MAX_FILE_SIZE = CSV_LIMITS.bytes
+export const LIMITS = { rows: CSV_LIMITS.rows, columns: CSV_LIMITS.columns, cells: CSV_LIMITS.cells }
+const DATASET_LIMIT_ERROR = shapeLimitMessage()
 export const DEFAULT_OPTIONS = {
   trim: false,
   deduplicate: false,
@@ -13,11 +15,8 @@ export const DEFAULT_OPTIONS = {
 }
 
 export async function readCsvFile(file) {
-  if (!file) throw new Error('Choose or drop exactly one CSV file.')
-  if (!/\.csv$/i.test(file.name)) throw new Error('Please choose a .csv file. Other formats are not supported.')
-  if (file.size > MAX_FILE_SIZE) {
-    throw new Error('This file exceeds the 5 MB upload limit for this browser workspace. To try a smaller sample, open a copy in a spreadsheet editor, keep the header row and fewer complete data rows, then export it as a UTF-8 CSV of 5 MB or less. The sample must also stay within 25,000 rows, 200 columns, and 250,000 cells. Your original file is unchanged.')
-  }
+  // Compatibility helper for deterministic unit tests; the UI uses readCsvStream in a worker.
+  validateFile(file)
   const bytes = await file.arrayBuffer()
   let text
   try {
@@ -104,87 +103,6 @@ export function parseCsv(text) {
   return { columns, rows }
 }
 
-export const isMissing = (value) => value.trim() === ''
-
-export function getMetrics(dataset) {
-  if (!dataset) return null
-  const seen = new Set()
-  let duplicates = 0
-  let missing = 0
-  for (const { values } of dataset.rows) {
-    missing += values.filter(isMissing).length
-    const key = JSON.stringify(values)
-    if (seen.has(key)) duplicates += 1
-    seen.add(key)
-  }
-  return { rows: dataset.rows.length, columns: dataset.columns.length, missing, duplicates }
-}
-
-function standardizeColumns(columns) {
-  const used = new Set()
-  return columns.map((column, index) => {
-    const base = column.trim().toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '_').replace(/^_+|_+$/g, '') || `column_${index + 1}`
-    let name = base
-    let suffix = 2
-    while (used.has(name)) name = `${base}_${suffix++}`
-    used.add(name)
-    return name
-  })
-}
-
-export function buildProposal(dataset, options) {
-  if (!dataset) return null
-  const changes = []
-  const summary = { trimmed: 0, renamed: 0, filled: 0, missingRows: 0, duplicates: 0 }
-  const columns = options.standardize ? standardizeColumns(dataset.columns) : [...dataset.columns]
-  columns.forEach((column, index) => {
-    if (column !== dataset.columns[index]) {
-      summary.renamed += 1
-      changes.push({ kind: 'rename-column', column: index + 1, before: dataset.columns[index], after: column })
-    }
-  })
-  const seen = new Set()
-  const rows = []
-  for (const row of dataset.rows) {
-    const pending = []
-    let trimmed = 0
-    let filled = 0
-    const values = row.values.map((value, index) => {
-      let next = options.trim ? value.trim() : value
-      if (next !== value) {
-        trimmed += 1
-        pending.push({ kind: 'trim-cell', row: row.id, column: index + 1, before: value, after: next })
-      }
-      if (options.missing === 'fill' && options.fillValue.trim() && isMissing(next)) {
-        filled += 1
-        pending.push({ kind: 'fill-cell', row: row.id, column: index + 1, before: next, after: options.fillValue })
-        next = options.fillValue
-      }
-      return next
-    })
-    const key = JSON.stringify(values)
-    const missingRow = options.missing === 'remove' && values.some(isMissing)
-    if (missingRow || (options.deduplicate && seen.has(key))) {
-      const reason = missingRow ? 'missing-values' : 'exact-duplicate'
-      summary[missingRow ? 'missingRows' : 'duplicates'] += 1
-      changes.push({ kind: 'remove-row', row: row.id, reason, before: row.values, after: null })
-      continue
-    }
-    seen.add(key)
-    summary.trimmed += trimmed
-    summary.filled += filled
-    changes.push(...pending)
-    rows.push({ id: row.id, values })
-  }
-  return { dataset: { columns, rows }, changes, summary }
-}
-
-export function getFormulaRiskCount(dataset) {
-  if (!dataset) return 0
-  return dataset.columns.filter((value) => FORMULA_PREFIX.test(value)).length
-    + dataset.rows.reduce((count, row) => count + row.values.filter((value) => FORMULA_PREFIX.test(value)).length, 0)
-}
-
 export function toCsv(dataset, { protectFormulas = true } = {}) {
   // Quote every field so a final empty, single-column record remains explicit.
   return Papa.unparse([dataset.columns, ...dataset.rows.map((row) => row.values)], {
@@ -208,7 +126,7 @@ export function createChangeLog({ file, version, dataset, entries, exportedAt })
 }
 
 export function downloadFile(content, filename, type) {
-  const url = URL.createObjectURL(new Blob([content], { type }))
+  const url = URL.createObjectURL(content instanceof Blob ? content : new Blob([content], { type }))
   const link = document.createElement('a')
   link.href = url
   link.download = filename

@@ -1,5 +1,5 @@
 ﻿import { ArrowRight, GitCompareArrows } from 'lucide-react'
-import { getMetrics } from '../lib/csv'
+import { memo } from 'react'
 
 const labels = {
   'trim-cell': 'Trim cell',
@@ -14,8 +14,8 @@ function Value({ value }) {
   return <span className="font-mono text-[11px] whitespace-pre-wrap break-all">{text}</span>
 }
 
-export default function ChangePreview({ proposal, metrics }) {
-  const after = proposal ? getMetrics(proposal.dataset) : null
+function ChangePreview({ proposal, metrics }) {
+  const after = proposal?.metrics ?? null
   const summaryItems = proposal ? {
     'Cells trimmed': proposal.summary.trimmed,
     'Columns renamed': proposal.summary.renamed,
@@ -49,7 +49,7 @@ export default function ChangePreview({ proposal, metrics }) {
               </div>
             ))}
           </div>
-          {proposal.changes.length ? (
+          {proposal.changeCount ? (
             <>
               <div className="mt-5 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-slate-500">
                 {Object.entries(summaryItems).map(([label, count]) => (
@@ -58,7 +58,7 @@ export default function ChangePreview({ proposal, metrics }) {
               </div>
               <div className="mt-4 overflow-x-auto" tabIndex={0} role="region" aria-label="Proposed changes">
                 <table className="w-full text-left text-xs">
-                  <caption className="sr-only">First eight proposed cleaning steps, with exact input and output values.</caption>
+                  <caption className="sr-only">First eight proposed cleaning steps. Preview strings may be shortened; the exported applied log retains complete values.</caption>
                   <thead>
                     <tr>
                       <th scope="col" className="table-header">Proposed step</th>
@@ -85,8 +85,8 @@ export default function ChangePreview({ proposal, metrics }) {
                 </table>
               </div>
               <p className="mt-3 text-[11px] leading-relaxed text-slate-500">
-                Showing {Math.min(8, proposal.changes.length)} of {proposal.changes.length.toLocaleString()} proposed steps, in cleaning order.
-                Later steps may use earlier proposed values. All applied steps are included in the exported log.
+                Showing {Math.min(8, proposal.changeCount)} of {proposal.changeCount.toLocaleString()} proposed steps, in cleaning order.
+                Preview strings are limited to 500 characters. Later steps may use earlier proposed values. All complete applied steps are included in the exported log.
               </p>
             </>
           ) : (
@@ -105,3 +105,5 @@ export default function ChangePreview({ proposal, metrics }) {
     </section>
   )
 }
+
+export default memo(ChangePreview)
