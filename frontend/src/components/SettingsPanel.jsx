@@ -1,20 +1,26 @@
-﻿import { FileSpreadsheet, HardDrive, ShieldCheck, Sparkles } from 'lucide-react'
+import { CSV_LIMITS } from '../lib/limits.js'
+import { FileSpreadsheet, HardDrive, ShieldCheck, Sparkles } from 'lucide-react'
 
 const workspaceDetails = [
   {
+    icon: HardDrive,
+    title: 'Explicit memory budgets',
+    text: 'Proposals allow 250,000 detailed changes / 32 MiB of serialized change text. Session history is limited to 64 MiB; expanded text to 33,554,432 UTF-16 code units; each export to 128 MiB. Excess operations are rejected before applying. Complete logs and original data are retained. Progress is per phase; cancellation waits for the current batch.',
+  },
+  {
     icon: ShieldCheck,
     title: 'Private, browser-only processing',
-    text: 'No CSV is uploaded to a server. There is no backend or cloud storage connected.',
+    text: 'A dedicated local worker processes data. No CSV is uploaded and no backend or cloud storage is connected.',
   },
   {
     icon: HardDrive,
     title: 'A temporary local session',
-    text: 'Data and preferences live in memory. Reloading or closing the tab clears them. Export your current CSV and log before leaving.',
+    text: 'Data lives in a local worker; preferences and bounded previews live in React memory. Reloading or closing the tab clears them. Export your current CSV and log before leaving.',
   },
   {
     icon: FileSpreadsheet,
     title: 'Supported CSV format',
-    text: 'UTF-8, comma-delimited CSV with a header record. Up to 5 MB, 25,000 data rows, 200 columns, and 250,000 cells. Blank records are kept. Inconsistent field counts and invalid quotes are rejected.',
+    text: `UTF-8 comma-delimited CSV with headers. Up to ${CSV_LIMITS.bytes / 1024 / 1024} MB, ${CSV_LIMITS.rows.toLocaleString()} rows, ${CSV_LIMITS.columns} columns and ${CSV_LIMITS.cells.toLocaleString()} cells. Quoted fields, blank records and mixed record endings are preserved. Strict quoting and UTF-8 validation apply.`,
   },
   {
     icon: Sparkles,
@@ -29,7 +35,7 @@ export default function SettingsPanel({ pageSize, onPageSizeChange }) {
       <h2 id="preferences-title" className="section-title">Your workspace, your preferences</h2>
       <div className="mt-6 border-t border-slate-100 pt-6">
         <label htmlFor="page-size" className="text-sm font-medium text-slate-700">Preview rows per page</label>
-        <p className="mt-1 text-xs text-slate-500">Applies to both the current and original dataset previews.</p>
+        <p className="mt-1 text-xs text-slate-500">Applies to both dataset previews, capped at 1,000 visible cells and 500 characters per cell/header.</p>
         <select id="page-size" className="form-input mt-3 max-w-48" value={pageSize} onChange={(event) => onPageSizeChange(Number(event.target.value))}>
           {[5, 10, 25, 50].map((size) => <option key={size} value={size}>{size} rows</option>)}
         </select>

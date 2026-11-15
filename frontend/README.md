@@ -1,6 +1,8 @@
 ﻿# Smart CSV Cleaner
 
-A frontend-only, browser-local CSV cleaning workspace built with React, Vite, Tailwind CSS v4, Lucide, and Papa Parse. No backend, account, database, cloud storage, or deployment is included.
+A frontend-only, browser-local CSV cleaning workspace built with React, Vite, Tailwind CSS v4, Lucide, and Papa Parse. No backend, account, database, cloud storage, or environment secrets are required.
+
+This working branch, `feature/large-csv-support`, implements a **25 MiB desktop beta profile**. Production `main` and its existing Vercel deployment were not changed by this work; their previous 5 MiB profile remains separate. Read [the architecture audit](./LARGE_CSV_ARCHITECTURE.md) and [measurements and release decision](./LARGE_CSV_RESULTS.md). **50 MiB is experimental and is not accepted by the application.**
 
 ## Local development
 
@@ -46,7 +48,8 @@ The manual fixture `tests/fixtures/edge-cases.csv` contains quoted commas, multi
 - Blank records are retained as rows of empty cells. Exactly one terminal line separator does not create a phantom record. Duplicate/empty headers are preserved until explicit standardization. There must be at least one nonblank header.
 - Strict quoting requires double quotes around the entire quoted field and doubled quotes inside it. Bare embedded quotes, text/spaces after closing quotes, unclosed quotes, and inconsistent nonblank record widths are rejected with an error. CSV dialects using semicolons, tabs, or non-UTF-8 encodings are not supported.
 - Metrics and paginated previews use actual data. Duplicate counts mean repeated exact rows beyond the first, without type coercion or normalization. Missing means empty or whitespace-only; strings such as `NA` are not treated as missing.
-- Original upload and current applied data are separate views. Cleaning selections create a proposal only. The comparison shows impact metrics and the first eight proposed steps, with exact before/after values in execution order. Later steps may use earlier proposed values.
+- Original upload and current applied data are separate views. Cleaning selections create a proposal only. The comparison shows impact metrics and the first eight proposed steps, with bounded before/after previews in execution order. Complete values remain in the applied JSON log. Later steps may use earlier proposed values.
+- Preview strings are limited to 500 UTF-16 code units without splitting surrogate pairs. Table pages contain at most 1,000 data cells, so wide files show fewer rows than the selected page size. These display limits never truncate the underlying data, exported CSV, or complete JSON log. Activity displays the latest 100 event summaries; JSON retains all session events.
 - Supported cleaning: trim leading/trailing cell whitespace (preserving interior whitespace); standardize headers to unique lowercase snake_case names with collision suffixes and fallback names; keep missing values, fill them with a chosen nonblank string, or remove rows containing them; keep the first exact duplicate after preceding selected operations.
 - Cleaning order: rename headers, trim cells, handle missing values, then deduplicate. Missing handling defaults to **Keep as-is**. Nothing fills or removes data until an explicit selection and confirmation.
 - Apply, replace-import, and restore-original operations require confirmation. Cancel leaves the working data intact. Invalid replacement files also preserve the workspace. All cleaning and export controls are disabled before upload and while a file is loading.
@@ -68,20 +71,35 @@ All import limits apply together and are inclusive:
 
 | Limit | Enforced value |
 | --- | --- |
-| File size | 5 x 1024 x 1024 bytes (5 MiB; UI label: 5 MB) |
-| Data rows | 25,000; header excluded |
+| File size | 25 x 1024 x 1024 bytes (25 MiB; UI label: 25 MB) |
+| Data rows | 100,000; header excluded |
 | Columns | 200, including empty/duplicate headers |
-| Data cells | 250,000 = data rows x header columns, including missing cells |
+| Data cells | 1,000,000 = data rows x header columns, including missing cells |
 
 An oversized file is rejected before its bytes are read. Structural validation rejects excess record/column counts early; parsed shape and total cells are checked before import. Keep the header and fewer complete records in a separate UTF-8 sample to reduce file size, while respecting every structural limit. Never split by physical lines because a quoted value may span multiple lines.
 
-Processing is in memory on the main browser thread. There is no streaming, worker, compression, or large-file service. Limits are safety bounds, not a responsiveness guarantee on all hardware. Very large cells, long replacement values, repeated cleaning sessions, and growing change logs can still increase CPU/memory use. Filling values and CSV quoting may produce an export larger than the import limit; export size is not capped, so such a download may require a smaller sample to re-import.
+Parsing, metrics, proposals, and serialization run in a dedicated local Web Worker. The file is decoded incrementally in 256 KiB slices and Papa Parse receives complete record batches. React receives bounded pages and summaries, rather than cloned full datasets. Original/current rows share unchanged values; original data is never modified. Export serialization produces bounded pieces but the complete dataset, history, and download Blob still reside in browser memory. This is not disk-backed or unlimited streaming.
+
+Processing reports actual phase/byte/row progress and supports cooperative cancellation before commit/download. One very large record or serialization step can delay cancellation. Confirmation/commit steps cannot be cancelled once committed. A worker failure requires a reload and re-import; there is no synchronous fallback or session recovery.
+
+Additional operation budgets preserve complete logs instead of silently dropping changes:
+
+| Budget | Bound |
+| --- | --- |
+| Proposed detailed changes | 250,000 entries and 32 MiB serialized detail |
+| Retained session history | 64 MiB serialized accounting |
+| Proposed dataset text | 33,554,432 UTF-16 code units across headers/cells |
+| CSV or JSON export | 128 MiB encoded output |
+
+These are logical budgets, **not a hard browser-memory ceiling**. A valid import can still have an expensive transformation rejected. For example, trimming one nearly 25 MiB field needs almost 50 MiB of exact before/after log text and exceeds the proposal budget. Rejection leaves current/original data intact and drops no log details. Choose fewer operations or a smaller sample; export data and logs before starting a fresh session. Filling/quoting can produce an export larger than the upload limit, which may not be re-importable without a smaller sample.
+
+Local evidence covers exact 5/10/25 MiB files, 100,000-row and 200-column/million-cell shapes, and a separate 50 MiB experiment with a relaxed test-only text budget. Two repetitions on one Windows desktop do not establish mobile/browser-wide support. Workers improve responsiveness, not necessarily processing duration. See the results document for timings and sampled-heap caveats.
 
 ## Privacy and session lifetime
 
 The application does not send CSVs, cells, filenames, or change logs to a server and does not write them to the browser console. No analytics, tracking SDK, third-party fonts, or external data services are integrated. React renders CSV strings as text, not executable HTML. Browser downloads use local Blob URLs which are revoked after requesting the download.
 
-All session data and preferences stay in React memory; there is no localStorage, IndexedDB, service worker, or recovery persistence. Original data is not mutated by cleaning or serialization, and the source file on disk is never written. Reloading/closing the page loses the workspace. Replacing an import clears the previous session history after confirmation. Export before leaving or replacing a file. There is no unload warning or autosave.
+Dataset values and complete history stay in worker memory; React holds settings, bounded previews, summaries, and temporary export Blobs. There is no localStorage, IndexedDB, service worker, or recovery persistence. Original data is not mutated by cleaning or serialization, and the source file on disk is never written. Reloading/closing the page loses the workspace. Replacing an import clears the previous session history after confirmation. Export before leaving or replacing a file. There is no unload warning or autosave.
 
 The **explicitly downloaded JSON log contains sensitive CSV values**, source metadata, and before/after values. Treat it like the original dataset. It is not anonymous telemetry. Downloaded files remain wherever the browser/user saves them. Browser extensions, device access, and spreadsheet software are outside this application's privacy boundary. When hosted, ordinary page/asset requests still go to the hosting provider; the app itself does not attach dataset contents.
 
@@ -101,68 +119,18 @@ A successful npm audit means no vulnerabilities were reported for this lockfile 
 6. Change page size in Settings. Try malformed, invalid UTF-8, and over-limit files; an existing dataset must remain intact.
 7. Save required downloads before reloading. Verify that reloading clears the session.
 
-## Publish the repository to GitHub (instructions only)
+## Reproduce the performance experiment
 
-The intended repository root is `F:\smart_csv_cleaner`, containing `frontend/`. As inspected during publication preparation, Git has not been initialized and there is no project remote or existing commit history. The current global author email lacks an `@`; configure a valid repository-local verified email or the exact GitHub-provided noreply address before committing. Do not infer your email from your username. GitHub CLI is not required.
+Run `npm run benchmark` from `frontend/` with Microsoft Edge installed, port 4174 available, and baseline commit `06ebe60` present in local Git history. It reads that commit without changing branches and writes an ignored baseline module under `.tmp/`. No real CSV is used: files are generated synthetically in a worker. The command overwrites `tests/benchmarks/results.json` with environment, shape, timing, correctness and sampled-heap statistics; it stores no CSV values.
 
-First create an **empty** public repository named **smart-csv-cleaner** on GitHub. Do not generate a README, license, or `.gitignore` there. Replace the three identity/account placeholders below. These are commands to run later, not commands already executed by this preparation:
+The benchmark uses Vite-transformed local modules, two repetitions per case, and a separate benchmark-only 50 MiB profile. It is distinct from the production-build UI tests. Close other heavy applications for comparable runs. Browser memory sampling is incomplete and must not be reported as total process peak memory. See the results document for the method and exact limitations.
 
-```powershell
-cd F:\smart_csv_cleaner
-git init -b main
-git config --local user.name "YOUR_NAME"
-git config --local user.email "YOUR_VERIFIED_EMAIL_OR_GITHUB_NOREPLY_ADDRESS"
-git config --local --get user.name
-git config --local --get user.email
-git add --dry-run -- frontend
-git add -- frontend
-git status --short
-git diff --cached --stat
-git diff --cached --check
-git diff --cached
-git commit -m "Prepare Smart CSV Cleaner frontend for public beta"
-git remote add origin https://github.com/YOUR_GITHUB_USERNAME/smart-csv-cleaner.git
-git remote -v
-```
+## Publication and hosting status
 
-Inspect the staged diff before committing. The actual application, package lockfile, QA source/configuration, documentation, favicon, and the synthetic fixture belong in Git. `frontend/.gitignore` excludes dependency/build directories, browser artifacts, caches, temporary files, Vercel local state, environment files, credential files, uploaded CSVs, and exported change logs. Only `tests/fixtures/edge-cases.csv` is allowlisted as a CSV; never use force-add on private datasets or secrets. New files must be reviewed again before staging. No secrets are needed, and Vite-exposed environment variables must never contain secrets.
+Git is already initialized and this work belongs on `feature/large-csv-support`. Do not reinitialize the repository or replace the existing remote. This task does not stage, commit, push, merge, or deploy. The deployed main branch remains unchanged. Historical initial-publication instructions have been superseded by this status.
 
-When you choose to publish, authenticate using Git's credential manager/browser prompt and then run this **separate publishing step**:
+If a deployment is separately authorized, the static Vite settings remain: framework **Vite**, root **frontend** when the repository root contains that directory, install **npm ci --include=dev**, build **npm run build**, output **dist**, Node **24.x**, and no environment secrets. There are no pathname routes, so no SPA rewrite is required. A Vite module worker is emitted as a local static asset; its MIME type, loading, CSP and asset routing must be checked on any eventual hosted preview. Existing production hosting was not exercised or changed during this local performance work.
 
-```powershell
-git push -u origin main
-```
+Keep ignored dependencies, dist, temporary files, downloaded logs and private datasets out of Git. Review all new benchmark/QA files before any future commit. Only synthetic fixture data and aggregate benchmark statistics belong in the repository. Do not add dataset-capturing analytics or session replay.
 
-If `origin` or a Git repository already exists when you reach these steps, inspect it before adapting the initialization commands; do not overwrite it blindly. The frontend README is under `frontend/`; a repository-root landing README can be added separately if desired. No project license was selected during preparation.
-
-See [GitHub's existing-code instructions](https://docs.github.com/en/migrations/importing-source-code/using-the-command-line-to-import-source-code/adding-locally-hosted-code-to-github).
-
-## Deploy to Vercel (instructions only)
-
-**Hosting has not been tested and no deployment has been performed.** The local production build is static Vite output; compatibility here is based on inspected source/build output and the documented Vercel settings, not a successful hosted build.
-
-After publishing the repository when authorized:
-
-1. In Vercel, choose **Add New > Project**, connect GitHub, and import `smart-csv-cleaner`.
-2. Set the following options before clicking Deploy:
-
-| Setting | Value |
-| --- | --- |
-| Framework preset | Vite |
-| Root directory | `frontend` when the Git repository root is `smart_csv_cleaner` / `smart-csv-cleaner` |
-| Install command | `npm ci --include=dev` (Vite and the React plugin are build-time development dependencies) |
-| Build command | `npm run build` |
-| Output directory | `dist` (relative to `frontend`, **not** `frontend/dist`) |
-| Node.js version | 24.x, matching `engines.node` |
-| Production branch | `main` |
-| Environment variables/secrets | None |
-
-3. Do not add a backend, storage integration, database, or runtime API. Do not omit build-time development dependencies; Vite and the React plugin are required by the build. Browser tests are a separate local/CI check and are not part of `npm run build`.
-4. When ready, click **Deploy**. Review the hosted build/install logs and the actual deployment URL. This action is intentionally not performed during preparation.
-5. On the eventual deployment, verify initial load/refresh, static assets and favicon, navigation, the synthetic fixture metrics, confirmations, CSV/JSON downloads, narrow layouts, and browser console/network behavior. Review hosting headers, access settings, and any platform analytics. Do not enable tools that capture dataset contents.
-
-The interface has no pathname router, React Router, or History API routes. Dashboard, Data Cleaning, Reports, and Settings are React state views at `/`; refresh returns to the initial empty workspace. `#main-content` is an in-page accessibility anchor. **No Vercel rewrite is necessary, and no `vercel.json` was added.** If real path-based routes are introduced later, reassess direct-link/refresh behavior and the SPA fallback then.
-
-If instead you publish only the frontend contents at the repository root, leave Vercel's Root Directory at its default (`.`) and keep `dist` as the output. Do not select `frontend` for that alternative layout.
-
-References: [Vite on Vercel](https://vercel.com/docs/frameworks/frontend/vite), [build/root directory settings](https://vercel.com/docs/builds/configure-a-build), and [supported Node versions](https://vercel.com/docs/functions/runtimes/node-js/node-js-versions). The local audit remains in [RELEASE_AUDIT.md](./RELEASE_AUDIT.md).
+The original [release audit](./RELEASE_AUDIT.md) records the earlier 5 MiB profile; [large-file results](./LARGE_CSV_RESULTS.md) describe this branch's current behavior and beta recommendation.

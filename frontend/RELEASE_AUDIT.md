@@ -1,5 +1,7 @@
 ﻿# Release readiness audit
 
+> Historical audit of the original 5 MiB profile. For the worker-based large-file feature branch, see [LARGE_CSV_RESULTS.md](./LARGE_CSV_RESULTS.md). The original results below have not been relabeled as current production or large-file verification.
+
 Audit date: 2026-11-14. Project: `F:\smart_csv_cleaner\frontend`.
 
 ## Recommendation

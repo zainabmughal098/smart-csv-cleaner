@@ -1,5 +1,6 @@
 ﻿import { ChevronLeft, ChevronRight, FileSpreadsheet, Table2 } from 'lucide-react'
-import { useState } from 'react'
+import { memo, useEffect, useState } from 'react'
+import { RESOURCE_LIMITS } from '../lib/limits.js'
 
 function CellValue({ value }) {
   if (value.trim() !== '') return value
@@ -10,13 +11,26 @@ function CellValue({ value }) {
   )
 }
 
-export default function DatasetTable({ dataset, original, pageSize, version }) {
+function DatasetTable({ dataset, original, pageSize: preferredPageSize, version, loadPage }) {
   const [page, setPage] = useState(0)
   const [mode, setMode] = useState('current')
   const selected = mode === 'original' ? original : dataset
-  const pages = Math.max(1, Math.ceil((selected?.rows.length ?? 0) / pageSize))
+  const pageSize = Math.min(preferredPageSize, Math.max(1, Math.floor(RESOURCE_LIMITS.previewCells / (selected?.columns.length ?? 1))))
+  const pages = Math.max(1, Math.ceil((selected?.rowCount ?? 0) / pageSize))
   const safePage = Math.min(page, pages - 1)
   const start = safePage * pageSize
+  const [view, setView] = useState(null)
+  const key = `${version}:${mode}:${safePage}:${pageSize}`
+  useEffect(() => {
+    if (!selected) return
+    let stale = false
+    loadPage({ mode, page: safePage, pageSize }).then(
+      (result) => { if (!stale) setView({ ...result, key }) },
+      (error) => { if (!stale) setView({ key, rows: [], error: error.message }) },
+    )
+    return () => { stale = true }
+  }, [selected, mode, safePage, pageSize, loadPage, key])
+  const visible = view?.key === key ? view : null
 
   function selectVersion(value) {
     setMode(value)
@@ -75,7 +89,7 @@ export default function DatasetTable({ dataset, original, pageSize, version }) {
                 </tr>
               </thead>
               <tbody>
-                {selected.rows.slice(start, start + pageSize).map((row) => (
+                {(visible?.rows ?? []).map((row) => (
                   <tr key={row.id} className="border-t border-slate-100 hover:bg-slate-50/70">
                     <th scope="row" className="table-cell font-normal text-slate-500 tabular-nums">{row.id}</th>
                     {row.values.map((value, index) => (
@@ -87,13 +101,15 @@ export default function DatasetTable({ dataset, original, pageSize, version }) {
                 ))}
               </tbody>
             </table>
-            {selected.rows.length === 0 && (
+            {visible?.error && <p role="alert" className="p-4 text-xs text-rose-700">{visible.error}</p>}
+            {!visible && <p role="status" className="p-4 text-xs text-slate-500">Loading preview page…</p>}
+            {selected.rowCount === 0 && (
               <p className="p-10 text-center text-xs text-slate-500">This dataset has headers but no data rows.</p>
             )}
           </div>
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 px-5 py-4 text-xs text-slate-500 sm:px-6">
             <p>
-              {selected.rows.length ? `${start + 1}–${Math.min(start + pageSize, selected.rows.length)} of ${selected.rows.length.toLocaleString()} rows` : '0 rows'}
+              {selected.rowCount ? `${start + 1}–${Math.min(start + pageSize, selected.rowCount)} of ${selected.rowCount.toLocaleString()} rows` : '0 rows'}
               <span className="ml-2 text-slate-500">· {mode === 'original' ? 'Original upload' : `Applied version ${version}`}</span>
             </p>
             <div className="flex items-center gap-2">
@@ -106,8 +122,11 @@ export default function DatasetTable({ dataset, original, pageSize, version }) {
               </button>
             </div>
           </div>
+          <p className="border-t border-slate-100 px-5 py-2 text-[10px] text-slate-500">Previews show at most 1,000 cells per page and 500 characters per value/header. CSV and JSON exports retain complete values.</p>
         </>
       )}
     </section>
   )
 }
+
+export default memo(DatasetTable)
