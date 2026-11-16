@@ -14,7 +14,7 @@ function Value({ value }) {
   return <span className="font-mono text-[11px] whitespace-pre-wrap break-all">{text}</span>
 }
 
-function ChangePreview({ proposal, metrics }) {
+function ChangePreview({ proposal, metrics, reviewed, onReview, disabled, appliedVersion }) {
   const after = proposal?.metrics ?? null
   const summaryItems = proposal ? {
     'Cells trimmed': proposal.summary.trimmed,
@@ -28,9 +28,9 @@ function ChangePreview({ proposal, metrics }) {
       <div className="flex flex-wrap items-center justify-between gap-2 px-5 pt-5 sm:px-6">
         <div className="flex items-center gap-2">
           <GitCompareArrows size={17} className="text-slate-500" />
-          <h2 id="changes-title" className="section-title">Before & after</h2>
+          <h2 id="changes-title" className="section-title" tabIndex={-1}>Before & after</h2>
         </div>
-        <span className="badge">Proposed · not applied</span>
+        <span className="badge" role="status">{proposal ? 'Proposed — not applied' : appliedVersion ? 'Changes applied' : 'Preview not generated'}</span>
       </div>
       <p className="mt-2 px-5 text-xs text-slate-500 sm:px-6">Review the impact before changing your working dataset.</p>
       {proposal ? (
@@ -88,18 +88,22 @@ function ChangePreview({ proposal, metrics }) {
                 Showing {Math.min(8, proposal.changeCount)} of {proposal.changeCount.toLocaleString()} proposed steps, in cleaning order.
                 Preview strings are limited to 500 characters. Later steps may use earlier proposed values. All complete applied steps are included in the exported log.
               </p>
+              <label className="mt-4 flex items-start gap-2 text-xs leading-relaxed text-slate-700">
+                <input type="checkbox" className="mt-0.5 size-4 shrink-0 accent-indigo-600" disabled={disabled} checked={reviewed} onChange={(event) => onReview(event.target.checked)} />
+                <span>I have reviewed the proposed changes</span>
+              </label>
             </>
           ) : (
             <p className="mt-5 rounded-lg bg-slate-50 p-4 text-xs text-slate-500">
-              No changes proposed. Select cleaning options to compare current and proposed values.
+              No changes needed for the selected options. Current data is unchanged.
             </p>
           )}
         </div>
       ) : (
         <div className="flex min-h-40 flex-col items-center justify-center px-6 py-8 text-center">
           <GitCompareArrows size={25} className="mb-3 text-slate-300" />
-          <p className="text-xs font-medium text-slate-600">See exactly what will change</p>
-          <p className="mt-2 text-xs text-slate-500">Your before-and-after comparison will appear here.</p>
+          <p className="text-xs font-medium text-slate-600">{appliedVersion ? `Changes applied to version ${appliedVersion}` : 'See exactly what will change'}</p>
+          <p className="mt-2 text-xs text-slate-500">Choose cleaning options and select Preview changes to generate a before-and-after comparison.</p>
         </div>
       )}
     </section>
