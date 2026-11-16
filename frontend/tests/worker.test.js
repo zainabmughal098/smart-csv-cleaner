@@ -115,6 +115,23 @@ test('cancelled cleaning does not change current data or history; stale proposal
   await assert.rejects(workspace.handle('apply', { token: first.token }), /stale/)
 })
 
+test('starting a replacement invalidates previous proposal tokens even if it fails or is discarded', async () => {
+  const { workspace } = await loaded()
+  const before = workspace.snapshot()
+  const first = await workspace.handle('propose', { options: settings })
+  await assert.rejects(workspace.handle('import', { file: file('a,b\ninvalid') }))
+  await assert.rejects(workspace.handle('apply', first), /stale/)
+  assert.deepEqual(workspace.snapshot(), before)
+  const second = await workspace.handle('propose', { options: settings })
+  await workspace.handle('import', { file: file('Name\nreplacement') })
+  await workspace.handle('discardImport')
+  await assert.rejects(workspace.handle('apply', second), /stale/)
+  assert.deepEqual(workspace.snapshot(), before)
+  const third = await workspace.handle('propose', { options: settings })
+  await workspace.handle('apply', third)
+  assert.equal(workspace.snapshot().version, before.version + 1)
+})
+
 test('proposal detail, session history and data expansion budgets reject transactionally', async () => {
   for (const resources of [
     { ...RESOURCE_LIMITS, proposalChanges: 1 },

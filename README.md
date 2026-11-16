@@ -126,8 +126,8 @@ The build writes `frontend/dist/`. The preview command serves that output locall
 1. **Choose a CSV.** Drop one UTF-8 CSV onto the upload area or use the file picker. Wait for validation and the initial metrics.
 2. **Inspect the data.** Review missing cells and exact duplicates, page through records, and compare original/current views. Source-row IDs identify original data records, not physical file lines.
 3. **Select operations.** Enable only the cleaning rules you want. Missing values remain unchanged unless you explicitly choose another strategy.
-4. **Review the proposal.** Check before/after metrics and proposed steps. Current data stays unchanged while the proposal is calculated. Cancel processing if needed; use **Recalculate proposed preview** to retry a cancelled/rejected plan.
-5. **Confirm application.** Choose **Review & apply changes** and approve the summary. The working version changes; the original upload remains available.
+4. **Preview and review.** Choose **Preview changes** to calculate the before/after comparison. Current data stays unchanged. Review the metrics and proposed steps, then check **I have reviewed the proposed changes**. Cancel processing if needed; select **Preview changes** again to retry. Changing options or attempting a replacement upload invalidates the preview and its review acknowledgement.
+5. **Confirm application.** Choose **Apply changes** and approve the confirmation summary. This button is enabled only for a reviewed proposal containing changes. The working version changes; the original upload remains available.
 6. **Download results.** Export the applied CSV and JSON change log. Review the formula-protection notice if relevant. An export event records a download request, not proof that the browser saved the file.
 7. **Save before leaving.** Download anything needed before refreshing, closing, or replacing the session. Restore-original and replacement operations require confirmation.
 

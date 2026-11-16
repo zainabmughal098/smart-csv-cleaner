@@ -24,7 +24,7 @@ export default function App() {
   const [pageSize, setPageSize] = useState(10)
   const { dataset, original, file, sessionId, hasApplied, hasExported, version, metrics, entries, eventCount, proposal, options, setOptions,
     error, setError, notice, setNotice, operation, importFile, applyChanges, loadPage,
-    busy, loading, recalculate, cancel, exportProps, exportCsv } = useCsvWorkspace()
+    busy, loading, previewChanges, reviewed, onReview, appliedVersion, hasSelections, cancel, exportProps, exportCsv } = useCsvWorkspace()
   const page = pages[active]
   function navigate(nextPage) {
     setActive(nextPage)
@@ -114,11 +114,10 @@ export default function App() {
                     version={version}
                     loadPage={loadPage}
                   />
-                  <ChangePreview proposal={proposal} metrics={metrics} />
+                  <ChangePreview proposal={proposal} metrics={metrics} reviewed={reviewed} onReview={onReview} disabled={busy} appliedVersion={appliedVersion} />
                 </div>
                 <div className="min-w-0 space-y-6">
-                  <CleaningPanel options={options} onChange={setOptions} disabled={busy} proposal={proposal} onApply={applyChanges} />
-                  {dataset && !proposal && !operation && <button className="secondary-button w-full justify-center" onClick={recalculate}>Recalculate proposed preview</button>}
+                  <CleaningPanel options={options} onChange={setOptions} disabled={busy} proposal={proposal} reviewed={reviewed} hasSelections={hasSelections} onPreview={previewChanges} onApply={applyChanges} />
                   <ExportPanel {...exportProps} />
                   <div className="flex items-start gap-2 px-1 text-[11px] leading-relaxed text-slate-500">
                     <ShieldCheck size={15} className="mt-0.5 shrink-0" />

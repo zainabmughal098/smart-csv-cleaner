@@ -103,6 +103,7 @@ export class Workspace {
     try {
       switch (method) {
         case 'import': {
+          this.proposal = null
           this.pendingImport = null
           const data = await readCsvStream(args.file, { signal, onProgress: progress, limits: this.limits })
           const analysis = await this.run(analyzeDataset(data), signal, progress)

@@ -6,7 +6,7 @@ const optionsList = [
   { key: 'standardize', label: 'Standardize column names', description: 'Use unique, lowercase snake_case names.', icon: CaseSensitive },
 ]
 
-export default function CleaningPanel({ options, onChange, disabled, proposal, onApply }) {
+export default function CleaningPanel({ options, onChange, disabled, proposal, reviewed, hasSelections, onPreview, onApply }) {
   const update = (key, value) => onChange({ ...options, [key]: value })
   const invalidFill = options.missing === 'fill' && !options.fillValue.trim()
 
@@ -70,12 +70,16 @@ export default function CleaningPanel({ options, onChange, disabled, proposal, o
         <p className="text-[11px] leading-relaxed text-indigo-800">
           {disabled
             ? 'Upload a CSV to enable cleaning. Your original file will always stay untouched.'
-            : 'Selections only update the proposed preview. Current data changes after you review and confirm.'}
+            : 'Choose options, preview their impact, then acknowledge your review before applying. Current data changes only after confirmation.'}
         </p>
       </div>
-      <button className="primary-button mt-4 w-full justify-center" disabled={disabled || invalidFill || !proposal?.changeCount} onClick={onApply}>
-        <Sparkles size={15} />Review & apply changes
+      <button className="primary-button mt-4 w-full justify-center" disabled={disabled || invalidFill || !hasSelections} onClick={onPreview}>
+        <Sparkles size={15} />Preview changes
       </button>
+      <button className="secondary-button mt-2 w-full justify-center" aria-describedby="apply-help" disabled={disabled || invalidFill || !proposal?.changeCount || !reviewed} onClick={onApply}>
+        Apply changes
+      </button>
+      <p id="apply-help" className="mt-2 text-[11px] leading-relaxed text-slate-500">Review the before-and-after preview and acknowledge it to enable Apply changes. Confirmation is required.</p>
     </section>
   )
 }

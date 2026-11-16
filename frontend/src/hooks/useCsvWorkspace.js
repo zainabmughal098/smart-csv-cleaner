@@ -9,12 +9,12 @@ export default function useCsvWorkspace() {
   const [operation, setOperation] = useState(null)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
-  const [previewNonce, setPreviewNonce] = useState(0)
+  const [reviewedToken, setReviewedToken] = useState(null)
+  const [appliedVersion, setAppliedVersion] = useState(null)
   const [protectFormulas, setProtectFormulas] = useState(true)
   const client = useRef(null)
   const transaction = useRef(null)
   const revision = useRef(0)
-  const cancelledPreview = useRef(-1)
   const getClient = useCallback(() => {
     if (!client.current) client.current = new CsvWorkerClient()
     return client.current
@@ -45,8 +45,6 @@ export default function useCsvWorkspace() {
       return await context.task.promise
     }
     try { await body(request, context) } catch (cause) {
-      // A rejected/cancelled plan waits for changed options or an explicit retry.
-      if (method === 'propose') cancelledPreview.current = revision.current
       if (cause.name === 'AbortError') setNotice('Operation cancelled. Current data and applied history are unchanged.')
       else setError(cause.message || 'The local CSV operation failed. Current data is unchanged.')
     } finally {
@@ -56,42 +54,48 @@ export default function useCsvWorkspace() {
 
   const setOptions = useCallback((next) => {
     revision.current += 1
-    cancelledPreview.current = -1
     setPlanned(null)
+    setReviewedToken(null)
+    setAppliedVersion(null)
     updateOptions(next)
   }, [])
   const resetOptions = useCallback(() => {
     revision.current += 1
-    cancelledPreview.current = -1
     setPlanned(null)
+    setReviewedToken(null)
+    setAppliedVersion(null)
     updateOptions({ ...DEFAULT_OPTIONS })
   }, [])
 
   const dataset = workspace?.current ?? null
   const version = workspace?.version ?? 0
-  const metrics = workspace?.metrics ?? null
   const hasSelections = options.trim || options.standardize || options.deduplicate || options.missing !== 'keep'
   const proposal = useMemo(() => {
-    if (!dataset) return null
-    if (!hasSelections) return { changes: [], changeCount: 0, summary: {}, metrics, version }
-    return planned?.version === version ? planned : null
-  }, [dataset, hasSelections, planned, metrics, version])
+    return dataset && planned?.version === version ? planned : null
+  }, [dataset, planned, version])
+  const reviewed = !!proposal && reviewedToken === proposal.token
 
   const calculate = useCallback(() => {
-    const selectedRevision = revision.current
+    if (!dataset || transaction.current || !hasSelections || (options.missing === 'fill' && !options.fillValue.trim())) return
+    const selectedRevision = ++revision.current
+    setPlanned(null)
+    setReviewedToken(null)
+    setAppliedVersion(null)
     return perform('propose', async (request) => {
       const result = await request('propose', { options })
-      if (selectedRevision === revision.current) setPlanned({ ...result, revision: selectedRevision })
+      if (selectedRevision === revision.current) {
+        setPlanned({ ...result, revision: selectedRevision })
+        requestAnimationFrame(() => document.getElementById('changes-title')?.focus())
+      }
     })
-  }, [options, perform])
-
-  useEffect(() => {
-    if (!dataset || !hasSelections || proposal || operation || cancelledPreview.current === revision.current) return
-    const timer = setTimeout(calculate, 150)
-    return () => clearTimeout(timer)
-  }, [dataset, hasSelections, proposal, operation, calculate, previewNonce])
+  }, [dataset, hasSelections, options, perform])
 
   const importFile = (selected) => perform('import', async (request) => {
+    // Even a failed, cancelled, or declined replacement requires a fresh review.
+    revision.current += 1
+    setPlanned(null)
+    setReviewedToken(null)
+    setAppliedVersion(null)
     const result = await request('import', { file: selected })
     if (dataset && !window.confirm('Replace the current workspace with this file? Current applied changes, pending selections, and session history will be cleared. Your original files will stay untouched. Export anything you want to keep first.')) {
       await request('discardImport')
@@ -104,7 +108,7 @@ export default function useCsvWorkspace() {
   })
 
   const applyChanges = () => {
-    if (transaction.current || !proposal?.changeCount || (options.missing === 'fill' && !options.fillValue.trim())) return
+    if (transaction.current || !proposal?.changeCount || !reviewed || proposal.revision !== revision.current || (options.missing === 'fill' && !options.fillValue.trim())) return
     const s = proposal.summary
     const details = `${s.trimmed} cells trimmed; ${s.renamed} columns renamed; ${s.filled} missing cells filled; ${s.missingRows + s.duplicates} rows removed (${s.missingRows} with missing values, ${s.duplicates} duplicates).`
     if (!window.confirm(`Apply these proposed changes to your working copy?\n\n${details}\n\nThis replaces the current working version. The original upload stays available and unchanged.`)) return
@@ -112,6 +116,7 @@ export default function useCsvWorkspace() {
       const next = await request('apply', { token: proposal.token })
       resetOptions()
       setWorkspace(next)
+      setAppliedVersion(next.version)
       setNotice(`Changes applied to version ${next.version}. Your original upload is preserved.`)
     })
   }
@@ -149,15 +154,16 @@ export default function useCsvWorkspace() {
   return {
     workspace, dataset, original: workspace?.original ?? null, file: workspace?.file ?? null,
     sessionId: workspace?.sessionId, hasApplied: workspace?.hasApplied, hasExported: workspace?.hasExported,
-    version, metrics, entries: workspace?.events ?? [], eventCount: workspace?.eventCount ?? 0, proposal, options, setOptions,
+    version, metrics: workspace?.metrics ?? null, entries: workspace?.events ?? [], eventCount: workspace?.eventCount ?? 0, proposal, options, setOptions,
+    reviewed, appliedVersion, hasSelections,
+    onReview: (checked) => setReviewedToken(checked && proposal ? proposal.token : null),
     error, setError, notice, setNotice, operation, importFile, applyChanges, resetData, loadPage,
     busy: !!operation || !dataset,
     loading: operation?.method === 'import',
-    recalculate: () => { cancelledPreview.current = -1; setPreviewNonce((value) => value + 1) },
+    previewChanges: calculate,
     cancel: () => {
       const context = transaction.current
       if (!context?.cancellable) return
-      if (context.method === 'propose') cancelledPreview.current = revision.current
       context.cancelled = true
       context.task?.cancel()
       setOperation((current) => ({ ...current, phase: 'Cancellation requested; finishing the current batch', cancellable: false }))
